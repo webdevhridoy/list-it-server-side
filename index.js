@@ -36,9 +36,20 @@ async function run() {
         const bookingsCollections = client.db('classified').collection('bookings');
         const paymentsCollection = client.db('classified').collection('payments');
         const wishlistCollection = client.db('classified').collection('wishlist');
+        const adsCollection = client.db('classified').collection('ads');
         // console.log(productsCollections);
 
+        app.get('/advertisement', async (req, res) => {
+            const query = {};
+            const cursor = await adsCollection.find(query).toArray();
+            res.send(cursor);
+        });
 
+        app.post('/advertisement', async (req, res) => {
+            const ads = req.body;
+            const result = await adsCollection.insertOne(ads);
+            res.send(result);
+        });
 
         app.get('/users', async (req, res) => {
             const query = {};
