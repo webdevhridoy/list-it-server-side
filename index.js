@@ -39,10 +39,18 @@ async function run() {
         // console.log(productsCollections);
 
 
+
         app.get('/users', async (req, res) => {
             const query = {};
             const cursor = await usersCollections.find(query).toArray();
             res.send(cursor);
+        });
+
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await usersCollections.deleteOne(filter);
+            res.send(result);
         });
 
 
@@ -59,7 +67,7 @@ async function run() {
         //     const product = await productsCollections.find(query).toArray();
         //     res.send(product);
         // });
-        app.get('/products/:id', async (req, res) => {
+        app.get('/allproducts/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const product = await productsCollections.findOne(query);
@@ -105,6 +113,11 @@ async function run() {
         });
 
         // for sellers
+        app.get('/users/seller', async (req, res) => {
+            const query = { role: 'Seller' };
+            const user = await usersCollections.find(query).toArray();
+            res.send(user);
+        });
         app.get('/users/seller/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
@@ -112,6 +125,12 @@ async function run() {
             res.send({ isSeller: user?.role === 'Seller' });
         });
 
+        // for buyer
+        app.get('/users/buyer', async (req, res) => {
+            const query = { role: 'Buyer' };
+            const user = await usersCollections.find(query).toArray();
+            res.send(user);
+        });
         // for admin
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email;
@@ -143,6 +162,13 @@ async function run() {
         app.post('/products', async (req, res) => {
             const product = req.body;
             const result = await productsCollections.insertOne(product);
+            res.send(result);
+        });
+
+        app.delete('/allproducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await productsCollections.deleteOne(filter);
             res.send(result);
         });
 
