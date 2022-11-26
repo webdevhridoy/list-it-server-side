@@ -206,6 +206,34 @@ async function run() {
             const user = await usersCollections.find(query).toArray();
             res.send(user);
         });
+
+        app.put('/users/seller/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    status: 'Verified'
+                }
+            };
+            const result = await usersCollections.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        });
+
+        app.put('/users/updateseller/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    status: 'Verified'
+                }
+            };
+            const result = await productsCollections.updateMany(filter, updatedDoc, options);
+            res.send(result);
+        });
+
         app.get('/users/seller/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
