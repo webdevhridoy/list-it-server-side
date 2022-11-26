@@ -4,6 +4,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const { query } = require('express');
 
 // payment for stripe
 const stripe = require('stripe')('sk_test_51Io76EFe9X02hyfxekpLXBLSGlNGu7IgPMBC0iI4akbawAtMr47vtwrmhi6hFgimTNDv0oT3gmUIduleJCYnNun700GqLD1XsA');
@@ -26,6 +28,23 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 console.log(uri);
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    // console.log(authHeader);
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unauthorized Access' });
+    }
+    const token = authHeader.split(' ')[1];
+    console.log(token);
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'Access forbidden' });
+        }
+        req.decoded = decoded;
+        next();
+    });
+}
+
 
 async function run() {
 
@@ -38,6 +57,27 @@ async function run() {
         const wishlistCollection = client.db('classified').collection('wishlist');
         const adsCollection = client.db('classified').collection('ads');
         // console.log(productsCollections);
+
+
+        // jwt
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '15d' });
+            res.send({ token });
+        });
+
+        // app.get('/jwt', async (req, res) => {
+        //     const email = req.query.email;
+        //     const query = { email: email };
+        //     const user = await usersCollections.findOne(query);
+        //     console.log(user);
+        //     if (user) {
+        //         const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' });
+        //         return res.send({ accessToken: token });
+        //     }
+        //     res.status(403).send({ accessToken: '' });
+        // });
+
 
         app.get('/advertisement', async (req, res) => {
             const query = {};
@@ -65,7 +105,6 @@ async function run() {
         });
 
 
-
         app.get('/products/:categoryId', async (req, res) => {
             const categoryId = req.params.categoryId;
             const query = { categoryId };
@@ -86,14 +125,52 @@ async function run() {
         });
 
 
-        app.get('/products', async (req, res) => {
-            const query = {};
+        app.get('/products', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            console.log(decoded);
+            if (decoded.email !== req.query?.email) {
+                return res.status(403).send({ message: 'Unauthorized Access' });
+            }
+            let query = {};
+            if (req.query?.email) {
+                query = {
+                    email: req.query?.email
+                };
+            }
+            console.log(query);
             const cursor = productsCollections.find(query);
-            const service = await cursor.toArray();
-            // if (service.length === 0) {
-            //     res.send('No service were added')
-            // }
-            res.send(service);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const booking = { _id: ObjectId(id) };
+            const result = await bookingsCollections.findOne(booking);
+            res.send(result);
+        });
+
+        app.get('/bookings', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            if (decoded.email !== req.query?.email) {
+                return res.status(403).send({ message: 'Unauthorized Access' });
+            }
+            let query = {};
+            if (req.query?.email) {
+                query = {
+                    email: req.query?.email
+                };
+            }
+            const cursor = bookingsCollections.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+
+        app.post('/bookings', async (req, res) => {
+            const product = req.body;
+            const result = await bookingsCollections.insertOne(product);
+            res.send(result);
         });
 
         app.get('/categories', async (req, res) => {
@@ -183,25 +260,6 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/bookings/:id', async (req, res) => {
-            const id = req.params.id;
-            const booking = { _id: ObjectId(id) };
-            const result = await bookingsCollections.findOne(booking);
-            res.send(result);
-        });
-
-        app.get('/bookings', async (req, res) => {
-            const query = {};
-            const result = await bookingsCollections.find(query).toArray();
-            res.send(result);
-        });
-
-
-        app.post('/bookings', async (req, res) => {
-            const product = req.body;
-            const result = await bookingsCollections.insertOne(product);
-            res.send(result);
-        });
 
         app.post('/create-payment-intent', async (req, res) => {
             const booking = req.body;
