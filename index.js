@@ -123,6 +123,12 @@ async function run() {
             const product = await productsCollections.findOne(query);
             res.send(product);
         });
+        // app.get('/allproducts/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: ObjectId(id) };
+        //     const product = await productsCollections.findOne(query);
+        //     res.send(product);
+        // });
 
 
         app.get('/products', verifyJWT, async (req, res) => {
@@ -307,21 +313,51 @@ async function run() {
 
         });
 
-        app.post('/payments', async (req, res) => {
+        app.put('/payments', async (req, res) => {
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
-            const id = payment.bookingId;
+            const id = payment.bookingsId;
             const filter = { _id: ObjectId(id) };
+            console.log('inside of payments', filter);
+            const options = { upsert: true };
             const updatedDoc = {
                 $set: {
                     paid: true,
-                    transactionId: payment.transactionId
-
+                    availability: true,
+                    transactionId: payment.transactionId,
                 }
             };
-            const updatedResult = await bookingsCollections.updateOne(filter, updatedDoc);
-            res.send({ result, updatedResult });
+            const ids = payment.bookingId;
+            const filters = { _id: ObjectId(ids) };
+            const updatedDocs = {
+                $set: {
+                    paid: true,
+                    availability: true,
+                    transactionId: payment.transactionId,
+                }
+            };
+            const updatedResult = await bookingsCollections.updateOne(filter, updatedDoc, options);
+            const myProducts = await productsCollections.updateOne(filters, updatedDocs, options);
+            res.send({ result, updatedResult, myProducts });
         });
+        // app.put('/payment', async (req, res) => {
+        //     const payment = req.body;
+        //     const result = await paymentsCollection.insertOne(payment);
+        //     const id = payment.bookingId;
+        //     const filter = { _id: ObjectId(id) };
+        //     console.log('inside of payment', filter);
+        //     const options = { upsert: true };
+        //     const updatedDoc = {
+        //         $set: {
+        //             paid: true,
+        //             availability: true,
+        //             transactionId: payment.transactionId,
+        //         }
+        //     };
+        //     // const updatedResult = await bookingsCollections.updateOne(filter, updatedDoc, options);
+        //     const myProducts = await productsCollections.updateOne(filter, updatedDoc, options);
+        //     res.send({ result, myProducts });
+        // });
 
         app.get('/wishlist/:id', async (req, res) => {
             const id = req.params.id;
