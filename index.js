@@ -85,10 +85,16 @@ async function run() {
             res.send(cursor);
         });
 
+        // app.put('/advertisement', async (req, res) => {
+        //     const ads = req.body;
+        //     const result = await adsCollection.insertOne(ads);
+        //     res.send(result);
+        // });
+
         app.post('/advertisement', async (req, res) => {
             const ads = req.body;
-            const result = await adsCollection.insertOne(ads);
-            res.send(result);
+            const updatedResult = await adsCollection.insertOne(ads);
+            res.send(updatedResult);
         });
 
         app.get('/users', async (req, res) => {
@@ -336,9 +342,22 @@ async function run() {
                     transactionId: payment.transactionId,
                 }
             };
+
+            // for ads collection
+            const ads = payment.bookingId;
+            const adFilter = { bookingId: ads };
+            console.log(adFilter);
+            const adsUpdateDoc = {
+                $set: {
+                    paid: true,
+                    availability: true,
+                    transactionId: payment.transactionId,
+                }
+            };
             const updatedResult = await bookingsCollections.updateOne(filter, updatedDoc, options);
             const myProducts = await productsCollections.updateOne(filters, updatedDocs, options);
-            res.send({ result, updatedResult, myProducts });
+            const adsProduct = await adsCollection.updateOne(adFilter, adsUpdateDoc, options);
+            res.send({ result, updatedResult, myProducts, adsProduct });
         });
         // app.put('/payment', async (req, res) => {
         //     const payment = req.body;
